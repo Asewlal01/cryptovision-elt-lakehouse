@@ -8,6 +8,8 @@ from ..utils.paths import build_bronze_zip_path
 from .naming import build_file_name
 
 class DownloadMetadata(TypedDict):
+    symbol: str
+    date: str
     url: str
     path: str
     status: Literal["downloaded", "skipped", "not_found"]
@@ -65,6 +67,8 @@ class BinanceVisionClient:
 
         ts = datetime.datetime.now(datetime.timezone.utc)
         meta: DownloadMetadata = {
+            'symbol': symbol,
+            'date': date.isoformat(),
             'url': url,
             'path': str(save_path),
             'status': 'skipped',
