@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Callable
 
 class FakeReponse:
     def __init__(self, 
@@ -34,6 +34,24 @@ class FakeReponse:
             if self.raise_midstream:
                 raise Exception("Midstream error")
 
+def make_fake_http_get(status_code: int,
+                       content: bytes,
+                       raise_midstream: bool
+                       ) -> Callable:
+    """
+    Generate a function that acts like an HTTP get request but with a fake response
+
+        Args:
+            status_code (int): Status code of the response
+            content (bytes): Content of codes encoded as bytes
+            raise_midstream (bool): Boolean indicating whether to raise an exception midstream
+
+    Returns:
+        Callable: Fake HTTP get request function
+    """    
+    def fake_http_get(*args, **kwargs):
+        return FakeReponse(status_code, content, raise_midstream)
+    return fake_http_get
 
 def test_successful_write():
     """
