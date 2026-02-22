@@ -1,8 +1,10 @@
 from typing import Callable
 from cryptovision import BinanceVisionClient
+from cryptovision.binance_client.client import NotFoundError
 import datetime
 import hashlib
 import pathlib
+import pytest
 
 class FakeReponse:
     def __init__(self, 
@@ -65,16 +67,15 @@ def test_successful_write(tmp_path):
     content = b'this is a streaming test'
     raise_midstream = False
     http_get = make_fake_http_get(status_code, content, raise_midstream)
-
     client = BinanceVisionClient(tmp_path, http_get)
     
     symbol = 'TEST'
-    today = datetime.date(2026, 1, 1)
-    meta = client.download(symbol, today)
+    date = datetime.date(2026, 1, 1)
+    meta = client.download(symbol, date)
 
     # Metadata checking
     assert meta['status'] == 'downloaded'
-    assert meta['http_status'] == status_code
+    assert meta['http_status'] == 200
     assert meta['bytes_written'] == len(content)
     assert meta['sha256'] == hashlib.sha256(content).hexdigest()
 
@@ -87,11 +88,34 @@ def test_successful_write(tmp_path):
     temp_path = file_path.with_name(file_path.name + '.tmp')
     assert not temp_path.exists()
     
-def test_404_no_found():
+def test_404_no_found(tmp_path):
     """
     Test whether the client can handle a 404 error (no file found), and make sure that it doesn't writes anything
     """
-    pass
+    status_code = 404
+    content = b''
+    raise_midstream = False
+    http_get = make_fake_http_get(status_code, content, raise_midstream)
+    client = BinanceVisionClient(tmp_path, http_get)
+
+    symbol = 'TEST'
+    date = datetime.date(2026, 1, 1)
+    meta = client.download(symbol, date)
+
+    # Metadata checking
+    assert meta['status'] == 'not_found'
+    assert meta["http_status"] == 404
+    assert meta['bytes_written'] == 0
+    
+    # Check whether there are no files
+    file_path = pathlib.Path(meta['path'])
+    temp_path = file_path.with_name(file_path.name + '.tmp')
+    assert not file_path.exists()
+    assert not temp_path.exists()
+
+    # Check whether directory does not exist
+    assert not file_path.parent.exists()
+        
 
 def test_zero_write_response():
     """
