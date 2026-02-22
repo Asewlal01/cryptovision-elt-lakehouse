@@ -1,6 +1,6 @@
 from typing import Callable
 from cryptovision import BinanceVisionClient
-from cryptovision.binance_client.client import NotFoundError
+from cryptovision.binance_client.client import WritingError
 import datetime
 import hashlib
 import pathlib
@@ -117,16 +117,32 @@ def test_404_no_found(tmp_path):
     assert not file_path.parent.exists()
         
 
-def test_zero_write_response():
+def test_zero_write_response(tmp_path):
     """
     Test whether the client can handle a response with no content (zero-bytes written) and succesfully cleans up any leftover files
     """
-    pass
+    status_code = 200
+    content = b''
+    raise_midstream = False
+    http_get = make_fake_http_get(status_code, content, raise_midstream)
+    client = BinanceVisionClient(tmp_path, http_get)
+
+    symbol = 'TEST'
+    date = datetime.date(2026, 1, 1)
+    with pytest.raises(WritingError):
+        client.download(symbol, date)
+    
+    # Check whether there are no files
+    file_path = client._build_file_path(symbol, date)
+    temp_path = file_path.with_name(file_path.name + '.tmp')
+    assert not temp_path.exists()
+    assert not file_path.exists()
 
 def test_midstream_failure():
     """
     Test whether the client can handle midstream failures and clean leftover files
     """    
+    
     pass
 
 def test_skip_if_alread_exists():
