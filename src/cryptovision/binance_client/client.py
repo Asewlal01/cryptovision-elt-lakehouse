@@ -1,4 +1,4 @@
-from typing import TypedDict, Optional, Literal
+from typing import TypedDict, Optional, Literal, Callable, Any
 import datetime
 import pathlib
 import requests
@@ -19,28 +19,35 @@ class NotFoundError(Exception):
         super().__init__(f'Resource not found: {url}')
         self.url = url
 
-class WritingError(Exception):
+class ZeroByteError(Exception):
     def __init__(self):
         super().__init__('Zero bytes written')
+
+class WritingError(Exception):
+    def __init__(self):
+        super().__init__('Error occured while writing')        
 
 class BinanceVisionClient:
     BASE_URL = "https://data.binance.vision"
     DATA_PATH = "data/spot/daily/trades"
     def __init__(self,
-                 bronze_path: pathlib.Path
+                 bronze_path: pathlib.Path,
+                 http_get: Callable[..., Any] = requests.get
                  ) -> None:
         """
         Initialize the Binance Vision Client
 
         Args:
             bronze_path (Path): Path to the bronze layer
+            http_get (Callable[..., Any]): Function used to perform the HTTP GET request. Defaults to requests.get
         """
         self.bronze_path = bronze_path
+        self.http_get = http_get
     
     def download(self,
                  symbol: str,
-                 date: datetime.date
-                 ) -> DownloadMetadata:
+                 date: datetime.date,
+                 ) -> DownloadMetadata: 
         """
         Download data from symbol at a given date
 
@@ -154,7 +161,7 @@ class BinanceVisionClient:
         """
         temp_path = save_path.with_name(save_path.name + ".tmp")
 
-        with requests.get(url, stream=True, timeout=(10, 60)) as response:
+        with self.http_get(url, stream=True, timeout=(10, 60)) as response:
             if response.status_code == 404:
                 raise NotFoundError(url)
             response.raise_for_status()
@@ -164,7 +171,6 @@ class BinanceVisionClient:
             # Keeping track of the bytes and hash
             bytes_written = 0
             hasher = hashlib.sha256()
-            
 
             try: 
                 with open(temp_path, 'wb') as f:
@@ -181,16 +187,16 @@ class BinanceVisionClient:
                     os.fsync(f.fileno())
 
             # Error when trying to write
-            except Exception:
+            except Exception as e:
                 if temp_path.exists():
                     temp_path.unlink()
-                raise
+                raise WritingError() from e
 
         # Empty file likely implies something went wrong during writing
         if bytes_written == 0:
             if temp_path.exists():
                     temp_path.unlink()
-            raise WritingError()
+            raise ZeroByteError()
 
         # Replace correct file name
         temp_path.replace(save_path)
