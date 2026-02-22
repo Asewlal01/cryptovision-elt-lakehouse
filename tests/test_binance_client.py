@@ -1,3 +1,40 @@
+from typing import List
+
+class FakeReponse:
+    def __init__(self, 
+                status_code: int,
+                content: bytes,
+                raise_midstream: bool
+                ) -> None:
+        """
+        Instantiate the fake response
+
+        Args:
+            status_code (int): Status code of the response
+            content (bytes): Content of codes encoded as bytes
+            raise_midstream (bool): Boolean indicating whether to raise an exception midstream
+        """        
+        self.status_code = status_code
+        self.content = content
+        self.raise_midstream = raise_midstream
+
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, *_):
+        return None
+    
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise Exception("HTTP error")
+        
+    def iter_content(self, chunk_size):
+        for i in range(0, len(self.content), chunk_size):
+            yield self.content[i:i+chunk_size]
+            if self.raise_midstream:
+                raise Exception("Midstream error")
+
+
 def test_successful_write():
     """
     Testing whether the client can succesfully download, write and return metadata
