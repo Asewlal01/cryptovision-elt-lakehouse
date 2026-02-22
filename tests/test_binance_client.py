@@ -159,9 +159,30 @@ def test_midstream_failure(tmp_path):
     assert not temp_path.exists()
     assert not file_path.exists()
     
-
-def test_skip_if_alread_exists():
+def test_skip_if_already_exists(tmp_path):
     """
     Test whether the client can handle skipping files when it already exists
     """    
-    pass
+    def failing_http_get(*args, **kwargs):
+        raise AssertionError("HTTP should not be called when file exists")
+    client = BinanceVisionClient(tmp_path, failing_http_get)
+
+    # Creates an already existing file
+    symbol = 'TEST'
+    date = datetime.date(2026, 1, 1)
+    file_path = client._build_file_path(symbol, date)
+    file_path.parent.mkdir(parents=True)
+    existing_content = b"existing file" # Older content allows to check whether the file is not updated with new content
+    file_path.write_bytes(existing_content)
+    
+    # Checking meta
+    meta = client.download(symbol, date)
+    assert meta['status'] == 'skipped'
+    assert meta['bytes_written'] == 0
+
+    # Checking file was not overwritten
+    assert file_path.read_bytes() == existing_content
+    
+    # No temp file creation
+    temp_path = file_path.with_name(file_path.name + '.tmp')
+    assert not temp_path.exists()
