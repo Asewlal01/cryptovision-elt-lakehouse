@@ -19,9 +19,13 @@ class NotFoundError(Exception):
         super().__init__(f'Resource not found: {url}')
         self.url = url
 
-class WritingError(Exception):
+class ZeroByteError(Exception):
     def __init__(self):
         super().__init__('Zero bytes written')
+
+class WritingError(Exception):
+    def __init__(self):
+        super().__init__('Error occured while writing')        
 
 class BinanceVisionClient:
     BASE_URL = "https://data.binance.vision"
@@ -183,16 +187,16 @@ class BinanceVisionClient:
                     os.fsync(f.fileno())
 
             # Error when trying to write
-            except Exception:
+            except Exception as e:
                 if temp_path.exists():
                     temp_path.unlink()
-                raise
+                raise ZeroByteError() from e
 
         # Empty file likely implies something went wrong during writing
         if bytes_written == 0:
             if temp_path.exists():
                     temp_path.unlink()
-            raise WritingError()
+            raise ZeroByteError()
 
         # Replace correct file name
         temp_path.replace(save_path)
