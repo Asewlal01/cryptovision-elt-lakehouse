@@ -190,7 +190,7 @@ class BinanceVisionClient:
             except Exception as e:
                 if temp_path.exists():
                     temp_path.unlink()
-                raise ZeroByteError() from e
+                raise WritingError() from e
 
         # Empty file likely implies something went wrong during writing
         if bytes_written == 0:
