@@ -19,7 +19,7 @@
 	},
 
 	// Uncomment the next line to run commands after the container is created.
-	"postCreateCommand": "pip install -r requirements.txt && pip install -e .[dev]"
+	"postCreateCommand": "pip install -e .[dev]"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
