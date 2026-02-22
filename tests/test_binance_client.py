@@ -1,4 +1,8 @@
-from typing import List, Callable
+from typing import Callable
+from cryptovision import BinanceVisionClient
+import datetime
+import hashlib
+import pathlib
 
 class FakeReponse:
     def __init__(self, 
@@ -53,12 +57,36 @@ def make_fake_http_get(status_code: int,
         return FakeReponse(status_code, content, raise_midstream)
     return fake_http_get
 
-def test_successful_write():
+def test_successful_write(tmp_path):
     """
-    Testing whether the client can succesfully download, write and return metadata
-    """    
-    pass
+    Test whether the client can succesfully download, write and return metadata
+    """
+    status_code = 200
+    content = b'this is a streaming test'
+    raise_midstream = False
+    http_get = make_fake_http_get(status_code, content, raise_midstream)
 
+    client = BinanceVisionClient(tmp_path, http_get)
+    
+    symbol = 'TEST'
+    today = datetime.date(2026, 1, 1)
+    meta = client.download(symbol, today)
+
+    # Metadata checking
+    assert meta['status'] == 'downloaded'
+    assert meta['http_status'] == status_code
+    assert meta['bytes_written'] == len(content)
+    assert meta['sha256'] == hashlib.sha256(content).hexdigest()
+
+    # Final file checking
+    file_path = pathlib.Path(meta['path'])
+    assert file_path.exists()
+    assert file_path.read_bytes() == content
+
+    # Check for no temp file
+    temp_path = file_path.with_name(file_path.name + '.tmp')
+    assert not temp_path.exists()
+    
 def test_404_no_found():
     """
     Test whether the client can handle a 404 error (no file found), and make sure that it doesn't writes anything
