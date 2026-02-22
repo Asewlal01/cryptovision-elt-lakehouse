@@ -1,5 +1,6 @@
 import pathlib
 import datetime
+from ..binance_client.naming import build_file_name, normalize_symbol
 
 class InvalidSymbolError(Exception):
     def __init__(self):
@@ -20,6 +21,7 @@ def build_partition_path(root: pathlib.Path,
     Returns:
         pathlib.Path: Parent directory of saved file
     """
+    symbol = normalize_symbol(symbol)
     if not symbol:
         raise InvalidSymbolError()
 
@@ -45,11 +47,9 @@ def build_bronze_zip_path(bronze_path: pathlib.Path,
     Returns:
         pathlib.Path: Path to saved file
     """
-    symbol = symbol.strip().upper()
     partition_path = build_partition_path(bronze_path, symbol, date)
     
-    date_str = date.isoformat()
-    file_name = f'{symbol}-trades-{date_str}.zip'
+    file_name = build_file_name(symbol, date)
     bronze_zip_path = partition_path.joinpath(file_name)
 
     return bronze_zip_path
@@ -69,7 +69,6 @@ def build_silver_parquet_path(silver_path: pathlib.Path,
     Returns:
         pathlib.Path: Path to saved file
     """
-    symbol = symbol.strip().upper()
     partition_path = build_partition_path(silver_path, symbol, date)
 
     file_name = 'trades.parquet'

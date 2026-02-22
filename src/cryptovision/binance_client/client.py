@@ -4,6 +4,8 @@ import pathlib
 import requests
 import hashlib
 import os
+from ..utils.paths import build_bronze_zip_path
+from .naming import build_file_name
 
 class DownloadMetadata(TypedDict):
     url: str
@@ -89,25 +91,7 @@ class BinanceVisionClient:
         meta['bytes_written'] = bytes_written
         meta['sha256'] = sha256
         return meta
-
     
-    def _build_file_name(self,
-                   symbol: str,
-                   date: datetime.date
-                   ) -> str:
-        """
-        Construct the file name that is used by Binance vision
-
-        Args:
-            symbol (str): Cryptocurrency pair of interest
-            date (datetime): Date of interest
-
-        Returns:
-            str: Filename 
-        """
-        date_str = date.isoformat()
-        return f'{symbol}-trades-{date_str}.zip'
-        
     def _build_url(self,
                    symbol: str,
                    date: datetime.date
@@ -122,7 +106,7 @@ class BinanceVisionClient:
         Returns:
             str: Url to downloadable data
         """
-        file_name = self._build_file_name(symbol, date)
+        file_name = build_file_name(symbol, date)
         return f'{self.BASE_URL}/{self.DATA_PATH}/{symbol}/{file_name}'
     
     def _build_file_path(self,
@@ -139,10 +123,7 @@ class BinanceVisionClient:
         Returns:
             pathlib.Path: Folder to save
         """        
-        date_str = date.isoformat()
-        file_name = self._build_file_name(symbol, date)
-        save_path = self.bronze_path.joinpath(symbol, date_str, file_name)
-
+        save_path = build_bronze_zip_path(self.bronze_path, symbol, date)
         return save_path
 
     def _stream_download(self,
