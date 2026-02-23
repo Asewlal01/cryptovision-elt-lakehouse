@@ -45,6 +45,7 @@ def write_silver_trades_parquet(enforced_trades_df: pl.DataFrame,
     Args:
         enforced_trades_df (pl.DataFrame): Dataframe with enforced scheme
         silver_file_path (pathlib.Path): Path to write parquet file to
+        
     Returns:
         int: Number of bytes written
     """

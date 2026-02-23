@@ -1,12 +1,17 @@
 import datetime
 import pathlib
-from typing import Callable
-from ..utils.paths import build_silver_parquet_path, build_bronze_zip_path
 from typing import TypedDict, Optional, Literal, Callable
+from .io import load_bronze_trades_zip, write_silver_trades_parquet
+from .schema import enforce_trades_schema
+from ..utils.paths import build_bronze_zip_path, build_silver_parquet_path
 
 def utcnow() -> datetime.datetime:
     timezone = datetime.timezone.utc
     return datetime.datetime.now(timezone)
+
+class WrongDateError(Exception):
+    def __init__(self):
+        super().__init__('Date of trades do not match provided date')      
 
 class SilverMetadata(TypedDict):
     status: Literal["written", "skipped", "missing_bronze"]
@@ -78,7 +83,23 @@ class SilverTradesProcessor:
             meta['status'] = 'missing_bronze'
             return meta
         
-        # TODO: add loading and processing
+        trades_df = load_bronze_trades_zip(bronze_file)
+        enforced_df = enforce_trades_schema(trades_df)
+
+        meta['rows'] = enforced_df.height
+        if meta['rows'] > 0:
+            min_ts = enforced_df.select('ts_utc').min().item()
+            max_ts = enforced_df.select('ts_utc').max().item()
+
+            # Date mismatch
+            if min_ts.date() != date or max_ts.date() != date:
+                raise WrongDateError()
+            
+            meta['min_ts'] = min_ts.isoformat()
+            meta['max_ts'] = max_ts.isoformat()
+
+        bytes_written = write_silver_trades_parquet(enforced_df, silver_file)
+        meta['output_bytes'] = bytes_written
 
         return meta
     
