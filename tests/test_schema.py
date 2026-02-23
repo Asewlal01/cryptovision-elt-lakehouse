@@ -1,6 +1,7 @@
 import polars as pl
 from cryptovision.silver_processing.schema import enforce_trades_schema, CANONICAL_COLUMNS
 import pytest
+from datetime import datetime, timezone
 
 @pytest.fixture
 def valid_raw_df():
@@ -60,7 +61,20 @@ def test_invalid_numeric_cast_raises(valid_raw_df):
     """
     df_invalid = valid_raw_df.with_columns(
         pl.lit("text").alias("column_1")
-    )
+        )
 
     with pytest.raises(pl.exceptions.InvalidOperationError):
         enforce_trades_schema(df_invalid)
+
+def test_timestamp_conversion(valid_raw_df):
+    """
+    Test whether timestamp convertions gives expected value
+    """    
+    date = datetime(2026, 1, 1)
+    epoch_ms = int(date.timestamp() * 1000)
+    df_modified = valid_raw_df.with_columns(
+        pl.lit(epoch_ms).alias("column_4")
+        )
+    
+    df = enforce_trades_schema(df_modified)
+    assert df["ts_utc"][0] == date
