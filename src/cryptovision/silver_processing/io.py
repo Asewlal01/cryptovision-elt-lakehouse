@@ -34,5 +34,5 @@ def load_bronze_trades_zip(zip_path: pathlib.Path) -> pl.DataFrame:
         
         csv_file = csv_files[0]
         with zf.open(csv_file, "r") as f:
-            return pl.read_csv(f)
+            return pl.read_csv(f, has_header=False)
 
