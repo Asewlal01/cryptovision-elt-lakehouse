@@ -19,13 +19,14 @@ CANONICAL_COLUMNS = [
 ]
 
 def enforce_trades_schema(trades_df: pl.DataFrame) -> pl.DataFrame:
-    """_summary_
+    """
+    Enforce schema to raw trades dataframe
 
     Args:
-        trades_df (pl.DataFrame): _description_
+        trades_df (pl.DataFrame): Raw trades dataframe
 
     Returns:
-        pl.DataFrame: _description_
+        pl.DataFrame: Trades dataframe with enforced scheme
     """
     # Number of columns checking
     expected_num_columns = len(RAW_COLUMNS)
