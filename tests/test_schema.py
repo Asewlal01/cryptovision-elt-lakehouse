@@ -1,11 +1,10 @@
 import polars as pl
 from cryptovision.silver_processing.schema import enforce_trades_schema, CANONICAL_COLUMNS
+import pytest
 
-def test_valid_schema_output():
-    """
-    Test whether schema enforcement returns dataframe with correct columns, valid types and no rows are dropped or added
-    """    
-    df_raw = pl.DataFrame(
+@pytest.fixture
+def valid_raw_df():
+    return pl.DataFrame(
         {
             "column_0": [1, 2, 3],
             "column_1": ["100.5", "101.0", "99.75"],
@@ -17,7 +16,11 @@ def test_valid_schema_output():
         }
     )
 
-    df = enforce_trades_schema(df_raw)
+def test_valid_schema_output(valid_raw_df):
+    """
+    Test whether schema enforcement returns dataframe with correct columns, valid types and no rows are dropped or added
+    """    
+    df = enforce_trades_schema(valid_raw_df)
 
     # Column checking
     assert df.columns == CANONICAL_COLUMNS
@@ -29,4 +32,15 @@ def test_valid_schema_output():
         assert df_type == expected_type
     
     # Number of rows checking
-    assert df_raw.height == df.height
+    assert valid_raw_df.height == df.height
+
+def test_extra_columns_raises_exception(valid_raw_df):
+    """
+    Test whether having more columns than expected raises an exception
+    """
+    df_invalid = valid_raw_df.with_columns(
+        pl.lit(1).alias("invalid_column")
+        )
+    
+    with pytest.raises(ValueError):
+        enforce_trades_schema(df_invalid)
