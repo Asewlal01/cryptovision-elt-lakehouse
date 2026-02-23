@@ -1,9 +1,24 @@
 import datetime
 import pathlib
 from typing import Callable
+from ..utils.paths import build_silver_parquet_path, build_bronze_zip_path
+from typing import TypedDict, Optional, Literal, Callable
 
 def utcnow() -> datetime.datetime:
-    return datetime.datetime.now(datetime.timezone.utc)
+    timezone = datetime.timezone.utc
+    return datetime.datetime.now(timezone)
+
+class SilverMetadata(TypedDict):
+    status: Literal["written", "skipped", "missing_bronze"]
+    symbol: str
+    date: str
+    bronze_path: str
+    silver_path: str
+    ingestion_ts: str
+    rows: Optional[int]
+    output_bytes: Optional[int]
+    min_ts: Optional[str]
+    max_ts: Optional[str]
 
 class SilverTradesProcessor:
     def __init__(self,
@@ -28,7 +43,7 @@ class SilverTradesProcessor:
 
     def process(self,
                 symbol: str,
-                date: datetime.date) -> dict:
+                date: datetime.date) -> SilverMetadata:
         """
         Process the file from a given symbol and date
 
@@ -38,6 +53,45 @@ class SilverTradesProcessor:
 
         Returns:
             dict: Metadata 
-        """        
+        """
+        bronze_file = build_bronze_zip_path(self.bronze_path, symbol, date)         
+        silver_file = build_silver_parquet_path(self.silver_path, symbol, date)
+        meta: SilverMetadata = {
+            'status': 'written',
+            'symbol': symbol,
+            'date': date.isoformat(),
+            'bronze_path': str(bronze_file),
+            'silver_path': str(silver_file),
+            'ingestion_ts': utcnow().isoformat(),
+            'rows': None,
+            'output_bytes': None,
+            'min_ts': None,
+            'max_ts': None
+        }
 
-        raise NotImplementedError
+        # File already exists and we do not overwrite
+        if self._should_skip(silver_file):
+            meta['status'] = 'skipped'
+            return meta
+        
+        if not bronze_file.exists():
+            meta['status'] = 'missing_bronze'
+            return meta
+        
+        # TODO: add loading and processing
+
+        return meta
+    
+    def _should_skip(self,
+                     silver_file: pathlib.Path
+                     ) -> bool:
+        """
+        Check whether the current file should be skipped
+
+        Args:
+            silver_file (pathlib.Path): Path to silver file
+
+        Returns:
+            bool: Boolean indicating whether to skip
+        """
+        return silver_file.exists() and not self.overwrite
