@@ -6,13 +6,13 @@ import pytest
 def valid_raw_df():
     return pl.DataFrame(
         {
-            "column_0": [1, 2, 3],
-            "column_1": ["100.5", "101.0", "99.75"],
-            "column_2": ["0.25", "0.10", "1.00"],
-            "column_3": ["25.125", "10.10", "99.75"],
-            "column_4": [1609459200000, 1609459260000, 1609459320000],
-            "column_5": [True, False, True],
-            "column_6": [True, True, False],
+            'column_0': [1, 2, 3],
+            'column_1': ['100.5', '101.0', '99.75'],
+            'column_2': ['0.25', '0.10', '1.00'],
+            'column_3': ['25.125', '10.10', '99.75'],
+            'column_4': [1609459200000, 1609459260000, 1609459320000],
+            'column_5': [True, False, True],
+            'column_6': [True, True, False],
         }
     )
 
@@ -41,6 +41,15 @@ def test_extra_columns_raises_exception(valid_raw_df):
     df_invalid = valid_raw_df.with_columns(
         pl.lit(1).alias("invalid_column")
         )
+    
+    with pytest.raises(ValueError):
+        enforce_trades_schema(df_invalid)
+
+def test_missing_column_raises_exception(valid_raw_df):
+    """
+    Test whether having more columns than expected raises an exception
+    """
+    df_invalid = valid_raw_df.drop('column_6')
     
     with pytest.raises(ValueError):
         enforce_trades_schema(df_invalid)
