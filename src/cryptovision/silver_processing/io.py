@@ -36,3 +36,29 @@ def load_bronze_trades_zip(zip_path: pathlib.Path) -> pl.DataFrame:
         with zf.open(csv_file, "r") as f:
             return pl.read_csv(f, has_header=False)
 
+def write_silver_trades_parquet(enforced_trades_df: pl.DataFrame,
+                                silver_file_path: pathlib.Path
+                                ) -> int:
+    """
+    Write trades dataframe with enforces scheme to path
+
+    Args:
+        enforced_trades_df (pl.DataFrame): Dataframe with enforced scheme
+        silver_file_path (pathlib.Path): Path to write parquet file to
+    Returns:
+        int: Number of bytes written
+    """
+    silver_file_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_file = silver_file_path.with_name(silver_file_path.name + '.tmp')
+
+    # Attempt writing of dataframe
+    try: 
+        enforced_trades_df.write_parquet(temp_file)
+        temp_file.replace(silver_file_path)
+    finally:
+        if temp_file.exists():
+            temp_file.unlink()
+    
+    bytes_written = silver_file_path.stat().st_size
+    return bytes_written
+
