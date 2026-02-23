@@ -1,6 +1,7 @@
 from cryptovision.silver_processing.io import *
 import zipfile
 from pathlib import Path
+import pytest
 
 def create_zip_with_csv(zip_path: Path, file_dict: dict[str, str]):
     """
@@ -29,4 +30,22 @@ def test_load_valid_zip(tmp_path):
 
     assert df.height == 1
     assert df.width == 7
+
+
+def test_zip_with_multiple_csv_raises(tmp_path):
+    """
+    Test whether zip can be loaded and returns correct DataFrame
+    """    
+    zip_path = tmp_path / "test.zip"
+
+    create_zip_with_csv(
+        zip_path,
+        {"trades.csv": "1,100.5,0.25,25.125,1609459200000,true,true\n",
+         "trades2.csv": "1,100.5,0.25,25.125,1609459200000,true,true\n",
+         "trades3.csv": "1,100.5,0.25,25.125,1609459200000,true,true\n"}
+        )
+    
+    with pytest.raises(MultipleFilesError):
+        load_bronze_trades_zip(zip_path)
+
 
