@@ -34,7 +34,7 @@ def test_load_valid_zip(tmp_path):
 
 def test_zip_with_multiple_csv_raises(tmp_path):
     """
-    Test whether zip can be loaded and returns correct DataFrame
+    Test whether zip with multiple files raises MultipleFilesError
     """    
     zip_path = tmp_path / "test.zip"
 
@@ -47,5 +47,20 @@ def test_zip_with_multiple_csv_raises(tmp_path):
     
     with pytest.raises(MultipleFilesError):
         load_bronze_trades_zip(zip_path)
+
+def test_zip_with_zero_csv_raises(tmp_path):
+    """
+    Test whether zip with no files raises NoFilesError
+    """    
+    zip_path = tmp_path / "test.zip"
+
+    create_zip_with_csv(
+        zip_path,
+        {}
+        )
+    
+    with pytest.raises(NoFilesError):
+        load_bronze_trades_zip(zip_path)
+
 
 
