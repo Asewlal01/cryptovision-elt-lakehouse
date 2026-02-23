@@ -47,9 +47,20 @@ def test_extra_columns_raises_exception(valid_raw_df):
 
 def test_missing_column_raises_exception(valid_raw_df):
     """
-    Test whether having more columns than expected raises an exception
+    Test whether having less columns than expected raises an exception
     """
     df_invalid = valid_raw_df.drop('column_6')
     
     with pytest.raises(ValueError):
+        enforce_trades_schema(df_invalid)
+
+def test_invalid_numeric_cast_raises(valid_raw_df):
+    """
+    Test whether an invalid type raises an error during casting
+    """
+    df_invalid = valid_raw_df.with_columns(
+        pl.lit("text").alias("column_1")
+    )
+
+    with pytest.raises(pl.exceptions.InvalidOperationError):
         enforce_trades_schema(df_invalid)
